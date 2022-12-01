@@ -3,9 +3,9 @@
 namespace App\Entity;
 
 use App\Repository\ItemRepository;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Serializer\Annotation\MaxDepth;
 
 #[ORM\Entity(repositoryClass: ItemRepository::class)]
 class Item
@@ -15,22 +15,18 @@ class Item
     #[ORM\Column]
     private int $id;
 
+    #[Groups('item')]
     #[ORM\Column(length: 255)]
     private string $path;
 
+    #[Groups('item')]
     #[ORM\Column(length: 255)]
     private string $name;
 
+    #[Groups('gallery')]
     #[ORM\ManyToOne(inversedBy: 'galleries')]
-    private Gallery $gallery;
-
-    #[ORM\OneToMany(mappedBy: 'item', targetEntity: Image::class)]
-    private Collection $images;
-
-    public function __construct()
-    {
-        $this->images = new ArrayCollection();
-    }
+    #[MaxDepth(1)]
+    private string $gallery;
 
     public function getId(): int
     {
@@ -61,44 +57,14 @@ class Item
         return $this;
     }
 
-    public function getGallery(): Gallery
+    public function getGallery(): string
     {
         return $this->gallery;
     }
 
-    public function setGallery(Gallery $gallery): self
+    public function setGallery(string $gallery): self
     {
         $this->gallery = $gallery;
-
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, Image>
-     */
-    public function getImages(): Collection
-    {
-        return $this->images;
-    }
-
-    public function addImage(Image $image): self
-    {
-        if (!$this->images->contains($image)) {
-            $this->images->add($image);
-            $image->setItem($this);
-        }
-
-        return $this;
-    }
-
-    public function removeImage(Image $image): self
-    {
-        if ($this->images->removeElement($image)) {
-            // set the owning side to null (unless already changed)
-            if ($image->getItem() === $this) {
-                $image->setItem(null);
-            }
-        }
 
         return $this;
     }

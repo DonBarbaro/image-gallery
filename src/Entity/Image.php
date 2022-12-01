@@ -2,13 +2,6 @@
 
 namespace App\Entity;
 
-use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\Delete;
-use ApiPlatform\Metadata\Get;
-use ApiPlatform\Metadata\GetCollection;
-use ApiPlatform\Metadata\Patch;
-use ApiPlatform\Metadata\Post;
-use ApiPlatform\Metadata\Put;
 use App\Repository\ImageRepository;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -36,7 +29,7 @@ class Image
     private string $modified;
 
     #[ORM\ManyToOne(inversedBy: 'images')]
-    private ?Item $item = null;
+    private Item $item;
 
     public function getId(): int
     {
@@ -103,7 +96,7 @@ class Image
         return $this;
     }
 
-    public function getItem(): ?Item
+    public function getItem(): Item
     {
         return $this->item;
     }
