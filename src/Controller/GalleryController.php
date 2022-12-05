@@ -36,7 +36,7 @@ class GalleryController extends AbstractController
             }else{
                 throw new \Exception('Unknown error', 500);
             }
-        return $this->json($json_data,200, ['header' => 'application/json']);
+        return $this->json(['galleries' => [$json_data]],200, ['header' => 'application/json']);
     }
 
     /*
@@ -48,10 +48,23 @@ class GalleryController extends AbstractController
     {
         $file = new Filesystem();
         $current_dir_path = getcwd();
+
+        $data = $request->get('name');
+
+        if (strpos($data, '/')) {
+            throw new \Exception('Gallery name can not contain "/"', 400);
+        }
+
+        $item = new Item();
+        $item->setPath($data);
+        $item->setName($data);
+
+        $path = $item->getPath();
+
         //vytvori novy priecinok files s gallery a gallery.json ak neexistuje
         try {
             $new_dir_path = $current_dir_path . "/files/gallery";
-            $new_file = $current_dir_path . "/files/gallery/gallery.json";
+            $new_file = $current_dir_path . '/files/gallery/'.$path.'/gallery.json';
             if(!$file->exists($new_dir_path))
             {
                 $file->mkdir($new_dir_path, 0777);
@@ -61,34 +74,25 @@ class GalleryController extends AbstractController
             echo "Error creating directory at" . $exception->getPath();
         }
 
-        $item = $this->fillUp($request);
-        $item_data = $item->getGalleries();
-
-        $jsonContent = $serializer->normalize($item_data, 'json', ['groups' => 'item']);
-
-        $jsonContentFile = $serializer->serialize($item, 'json');
-        $file->dumpFile($new_file, $jsonContentFile);
-
-        return $this->json($jsonContent, 201, ['header' => 'application/json']);
-    }
-
-    public function fillUp(Request $request): Gallery
-    {
-        $data = $request->get('name');
-
-        if (strpos($data, '/'))
-        {
-            throw new \Exception('Gallery name can not contain "/"', 400);
+        try {
+            $new_gallery = $current_dir_path.'/files/gallery/'.$path;
+            if(!$file->exists($new_gallery))
+            {
+                $file->mkdir($new_gallery, 0777);
+            }
+        }catch (IOExceptionInterface $exception) {
+            echo "Error creating directory at" . $exception->getPath();
         }
 
-        $item = new Item();
-        $item->setPath($data);
-        $item->setName($data);
 
-        $gallery = new Gallery();
-        $gallery->addItem($item);
+        $jsonContentArray = $serializer->normalize($item, 'array', ['groups' => 'item']);
 
-        return $gallery;
+        $jsonContentFile = $serializer->serialize($item, 'json');
+
+        $file->dumpFile($new_file, $jsonContentFile);
+
+
+        return $this->json($jsonContentArray, 201, ['header' => 'application/json']);
     }
 
     /*
@@ -100,18 +104,18 @@ class GalleryController extends AbstractController
     {
         $file = new Filesystem();
         $current_dir_path = getcwd();
-        //vytvori novy priecinok files s gallery a gallery.json ak neexistuje
-        if($file->exists($current_dir_path.'/files/gallery'.$path))
+        //ak neexistuje gallery s nazvom, vyhodí error
+        if(!$file->exists($current_dir_path.'/files/gallery/'.$path))
         {
             throw new \Exception('Gallery not found', 404);
         }
 
         try {
             $new_dir_path = $current_dir_path . "/files/gallery/".$path;
-            $new_file = $current_dir_path . "/files/gallery/".$path."/image.json";
-            if(!$file->exists($new_dir_path))
+            $new_file = $current_dir_path . "/files/gallery/".$path.'/'.$path.'.json';
+            if($file->exists($new_dir_path))
             {
-                $file->mkdir($new_dir_path, 0777);
+//                $file->mkdir($new_dir_path, 0777);
                 $file->touch($new_file);
             }
         }catch (IOExceptionInterface $exception) {
@@ -119,11 +123,10 @@ class GalleryController extends AbstractController
         }
 
         $uploaded_file= $request->files;
-        if (!$uploaded_file)
+        if (!$uploaded_file->get('file'))
         {
             throw new \Exception('File not found', 400);
         }
-
 
         $info = $uploaded_file->get('file');
 
@@ -133,11 +136,61 @@ class GalleryController extends AbstractController
         $img->setName(pathinfo($info->getClientOriginalName(), PATHINFO_FILENAME));
         $img->setModified((date("Y-m-d H:i:s")));
 
-        $jsonContentFile = $serializer->serialize($img, 'json');
-        $file->dumpFile($new_file, $jsonContentFile);
+        // serializujem objekt -> json
+        $json_content_file = $serializer->serialize($img, 'json');
+        $json_content_array = $serializer->normalize($img, 'json');
 
-        return $this->json(['uploaded' => [$img]], 201, ['header' => 'multipart/form-data']);
+        //prida novy img do {path}.json
+        $get_data = file_get_contents($new_file);
+        // ked je json prazdny prida text a obrazok
+        if ($get_data == ''){
+            $file->dumpFile($new_file, $json_content_file);
+            $info->move($new_dir_path, $img->getName().'.jpg');
+        }
+
+        //ked json nie je prazdny zoberie data a prida do pola novy obrazok a prida novy obrazok
+        if(!$get_data == ''){
+            $data_to_array[] = $serializer->decode($get_data, 'json');
+            array_push($data_to_array, $json_content_array);
+            $json = $serializer->serialize($data_to_array, 'json');
+            $file->dumpFile($new_file, $json);
+
+            // iba jpg obrazky
+            $info->move($new_dir_path, $img->getName().'.jpg');
+        }
+
+        return $this->json(['uploaded' => [$json_content_array]], 201, ['header' => 'multipart/form-data']);
     }
+     /*
+      * DELETE GALLERY
+      */
+    #[Route(path: '/gallery/{path}', name: 'delete', methods: 'DELETE')]
+    public function delete(string $path): JsonResponse
+    {
+        $file = new Filesystem();
+        $current_dir_path = getcwd();
+        try {
+            $gallery_json = $current_dir_path . '/files/gallery/gallery.json';
+            $gallery_dir = $current_dir_path . '/files/gallery/'.$path;
+            $img_json = $current_dir_path . '/files/gallery/'.$path.'/'.$path.'.json';
+            if ($file->exists($gallery_dir))
+            {
+                if ($file->exists($img_json))
+                {
+                    $file->remove($img_json);
+                }else{
+                    throw new \Exception('Photo does not exist', 404);
+                }
+                $file->remove($gallery_dir);
+                // TODO tu treba pridat cyklus aby prehladalo cely gallery.json a vymazalo konkretnu galeriu
+            }else{
+                throw new \Exception('Gallery does not exist', 404);
+            }
 
+        } catch (IOExceptionInterface $exception) {
+            throw new  \Exception('Unknown error', 500);
+        }
 
+        return $this->json('Gallery/photo was deleted', 200) ;
+    }
 }
