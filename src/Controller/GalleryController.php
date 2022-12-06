@@ -11,6 +11,7 @@ use Doctrine\DBAL\Exception;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Filesystem\Exception\IOExceptionInterface;
 use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Finder\Finder;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -26,17 +27,20 @@ class GalleryController extends AbstractController
     #[Route(path: '/gallery', name: 'galleryGet', methods: 'GET')]
     public function getGallery(): JsonResponse
     {
-        $file = new Filesystem();
+        $finder = new Finder();
+        $filesystem = new Filesystem();
         $current_dir_path = getcwd();
-        $new_file = $current_dir_path . "/files/gallery/gallery.json";
-            if($file->exists($new_file))
-            {
-                $gallery = file_get_contents($new_file);
-                $json_data = json_decode($gallery, true);
-            }else{
-                throw new \Exception('Unknown error', 500);
-            }
-        return $this->json(['galleries' => [$json_data]],200, ['header' => 'application/json']);
+        $data = [];
+        foreach ($finder->directories()->in($current_dir_path.'/files/gallery') as $file)
+        {
+            $file_name = $file->getRealPath().'/gallery.json';
+            $gallery = file_get_contents($file_name);
+            $json_data = json_decode($gallery, true);
+
+            $data[] = $json_data;
+
+        }
+        return $this->json(['galleries' => $data],200, ['header' => 'application/json']);
     }
 
     /*
@@ -56,26 +60,21 @@ class GalleryController extends AbstractController
         }
 
         $item = new Item();
-        $item->setPath($data);
+        $item->setPath(rawurlencode($data));
         $item->setName($data);
 
-        $path = $item->getPath();
+        $path = rawurldecode($item->getPath());
 
         //vytvori novy priecinok files s gallery a gallery.json ak neexistuje
         try {
             $new_dir_path = $current_dir_path . "/files/gallery";
             $new_file = $current_dir_path . '/files/gallery/'.$path.'/gallery.json';
+            $new_gallery = $current_dir_path.'/files/gallery/'.$path;
             if(!$file->exists($new_dir_path))
             {
                 $file->mkdir($new_dir_path, 0777);
                 $file->touch($new_file);
             }
-        }catch (IOExceptionInterface $exception) {
-            echo "Error creating directory at" . $exception->getPath();
-        }
-
-        try {
-            $new_gallery = $current_dir_path.'/files/gallery/'.$path;
             if(!$file->exists($new_gallery))
             {
                 $file->mkdir($new_gallery, 0777);
@@ -84,13 +83,10 @@ class GalleryController extends AbstractController
             echo "Error creating directory at" . $exception->getPath();
         }
 
-
         $jsonContentArray = $serializer->normalize($item, 'array', ['groups' => 'item']);
-
         $jsonContentFile = $serializer->serialize($item, 'json');
 
         $file->dumpFile($new_file, $jsonContentFile);
-
 
         return $this->json($jsonContentArray, 201, ['header' => 'application/json']);
     }
@@ -109,7 +105,6 @@ class GalleryController extends AbstractController
         {
             throw new \Exception('Gallery not found', 404);
         }
-
         try {
             $new_dir_path = $current_dir_path . "/files/gallery/".$path;
             $new_file = $current_dir_path . "/files/gallery/".$path.'/'.$path.'.json';
@@ -132,12 +127,13 @@ class GalleryController extends AbstractController
 
         $img = new Image();
         $img->setPath($info->getClientOriginalName());
-        $img->setFullPath($path.'/'.$img->getPath());
+        $img->setFullPath(rawurlencode($path).'/'.$img->getPath());
         $img->setName(pathinfo($info->getClientOriginalName(), PATHINFO_FILENAME));
         $img->setModified((date("Y-m-d H:i:s")));
 
         // serializujem objekt -> json
-        $json_content_file = $serializer->serialize($img, 'json');
+        $json_content_file = $serializer->serialize(array($img), 'json');
+
         $json_content_array = $serializer->normalize($img, 'json');
 
         //prida novy img do {path}.json
@@ -150,7 +146,7 @@ class GalleryController extends AbstractController
 
         //ked json nie je prazdny zoberie data a prida do pola novy obrazok a prida novy obrazok
         if(!$get_data == ''){
-            $data_to_array[] = $serializer->decode($get_data, 'json');
+            $data_to_array = $serializer->decode($get_data, 'json');
             array_push($data_to_array, $json_content_array);
             $json = $serializer->serialize($data_to_array, 'json');
             $file->dumpFile($new_file, $json);
@@ -169,12 +165,13 @@ class GalleryController extends AbstractController
     {
         $file = new Filesystem();
         $current_dir_path = getcwd();
+        // $path automaticky decoduje
         try {
-            $gallery_json = $current_dir_path . '/files/gallery/gallery.json';
             $gallery_dir = $current_dir_path . '/files/gallery/'.$path;
             $img_json = $current_dir_path . '/files/gallery/'.$path.'/'.$path.'.json';
             if ($file->exists($gallery_dir))
             {
+                // TODO osterit ked neexistuje {path}.json
                 if ($file->exists($img_json))
                 {
                     $file->remove($img_json);
@@ -182,7 +179,6 @@ class GalleryController extends AbstractController
                     throw new \Exception('Photo does not exist', 404);
                 }
                 $file->remove($gallery_dir);
-                // TODO tu treba pridat cyklus aby prehladalo cely gallery.json a vymazalo konkretnu galeriu
             }else{
                 throw new \Exception('Gallery does not exist', 404);
             }
