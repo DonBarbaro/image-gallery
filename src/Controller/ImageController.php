@@ -2,6 +2,8 @@
 
 namespace App\Controller;
 
+use Imagine\Gd\Imagine;
+use Imagine\Image\Box;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Filesystem\Exception\IOExceptionInterface;
 use Symfony\Component\Filesystem\Filesystem;
@@ -42,24 +44,34 @@ class ImageController extends AbstractController
         // TODO treba osetrit abz sa pri singel image zobrazovalo ako pole
         return $this->json(['gallery' => $gallery_json, 'images' => $image_json] , 200);
     }
-    #[Route(path: '/images/{w}x{h}/{path}', methods: 'GET')]
-    public function generateImg(int $w, int $h, string $path): Response
+    #[Route(path: '/images/{w}x{h}/{path}/{name}', methods: 'GET')]
+    public function generateImg(int $w, int $h, string $path, string $name): Response
     {
-        $file = new Filesystem();
         $current_dir = getcwd();
         $finder = new Finder();
-//        $finder->directories()->in()
-        $photo = $current_dir.'/files/gallery/'.$path.'/'.$path.'.jpg';
+        $file = new Filesystem();
 
+        if (!$file->exists($current_dir.'/files/gallery/'.$path.'/'.$name))
+        {
+            throw new \Exception("Photo not found", 404);
+        }
 
-        //response mam uz len dokoncit logiku ku nacitaniu
-        $response = new Response();
-        $disposition = $response->headers->makeDisposition(ResponseHeaderBag::DISPOSITION_INLINE, 'miro');
-        $response->headers->set('Content-Disposition', $disposition);
-        $response->headers->set('Content-Type', 'image/png');
-        $response->setContent(file_get_contents($photo));
+        foreach ($finder->files()->in($current_dir.'/files/gallery/'.$path) as $item)
+        {
+                if (strpos($item->getFilename(), 'jpg') && $name == $item->getFilename())
+                {
+                    if ($w < 0 || $w > 9000 || $h < 0 || $h > 9000)
+                    {
+                        throw new \Exception("The photo preview can't be generated", 500);
+                    }
+                    $photo = $item->getRealPath();
+                    $imagine = new Imagine();
+                    $image = $imagine->open($photo);
+                    $image->resize(new Box($w, $h));
+                }
+        }
 
-        return $response;
-//        return new Response($photo, 200, ['Content-type' => 'image/jpeg']);
+        return new Response($image, 200, ['Content-type' => 'image/jpeg']);
     }
+
 }

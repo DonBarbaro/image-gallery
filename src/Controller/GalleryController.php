@@ -160,29 +160,40 @@ class GalleryController extends AbstractController
      /*
       * DELETE GALLERY
       */
-    #[Route(path: '/gallery/{path}', name: 'delete', methods: 'DELETE')]
-    public function delete(string $path): JsonResponse
+    #[Route(path: '/gallery/{path}/{name}', name: 'delete', methods: 'DELETE')]
+    public function delete(string $path, string $name = ''): JsonResponse
     {
         $file = new Filesystem();
+        $finder = new Finder();
         $current_dir_path = getcwd();
         // $path automaticky decoduje
         try {
             $gallery_dir = $current_dir_path . '/files/gallery/'.$path;
             $img_json = $current_dir_path . '/files/gallery/'.$path.'/'.$path.'.json';
-            if ($file->exists($gallery_dir))
+            $img = $current_dir_path.'/files/gallery/'.$path.'/'.$name;
+            if ($name == '')
             {
-                // TODO osterit ked neexistuje {path}.json
-                if ($file->exists($img_json))
+                if ($file->exists($gallery_dir))
                 {
-                    $file->remove($img_json);
+                    $file->remove($gallery_dir);
+                    return $this->json('Gallery was deleted', 200) ;
                 }else{
-                    throw new \Exception('Photo does not exist', 404);
+                    throw new \Exception('Gallery does not exist', 404);
                 }
-                $file->remove($gallery_dir);
             }else{
-                throw new \Exception('Gallery does not exist', 404);
+                if (!$file->exists($img))
+                {
+                    throw new \Exception("Photo not found", 404);
+                }
+                foreach ($finder->files()->in($current_dir_path.'/files/gallery/'.$path) as $item)
+                {
+                    if ($file->exists($item->getRealPath()))
+                    {
+                        $file->remove($item->getRealPath());
+                        return $this->json('Photo was deleted', 200) ;
+                    }
+                }
             }
-
         } catch (IOExceptionInterface $exception) {
             throw new  \Exception('Unknown error', 500);
         }
