@@ -27,7 +27,7 @@ class ImageController extends AbstractController
         // $path automaticky decoduje
         try {
             $gallery_file = $current_dir.'/files/gallery/'.$path.'/'.'gallery.json';
-            $image_file = $current_dir.'/files/gallery/'.$path.'/'.$path.'.json';
+            $image_file = $current_dir.'/files/gallery/'.$path.'/items.json';
 
             if ($file->exists([$gallery_file, $image_file]))
             {
@@ -67,7 +67,7 @@ class ImageController extends AbstractController
                     $photo = $item->getRealPath();
                     $imagine = new Imagine();
                     $image = $imagine->open($photo);
-                    $image->resize(new Box($w, $h));
+                    $image->resize(new Box($w, $h), );
                 }
         }
 

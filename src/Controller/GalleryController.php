@@ -107,7 +107,7 @@ class GalleryController extends AbstractController
         }
         try {
             $new_dir_path = $current_dir_path . "/files/gallery/".$path;
-            $new_file = $current_dir_path . "/files/gallery/".$path.'/'.$path.'.json';
+            $new_file = $current_dir_path . "/files/gallery/".$path.'/items.json';
             if($file->exists($new_dir_path))
             {
 //                $file->mkdir($new_dir_path, 0777);
@@ -161,7 +161,7 @@ class GalleryController extends AbstractController
       * DELETE GALLERY
       */
     #[Route(path: '/gallery/{path}/{name}', name: 'delete', methods: 'DELETE')]
-    public function delete(string $path, string $name = ''): JsonResponse
+    public function delete(string $path, string $name = '', SerializerInterface $serializer): JsonResponse
     {
         $file = new Filesystem();
         $finder = new Finder();
@@ -169,7 +169,7 @@ class GalleryController extends AbstractController
         // $path automaticky decoduje
         try {
             $gallery_dir = $current_dir_path . '/files/gallery/'.$path;
-            $img_json = $current_dir_path . '/files/gallery/'.$path.'/'.$path.'.json';
+            $items_json = $current_dir_path . '/files/gallery/'.$path.'/items.json';
             $img = $current_dir_path.'/files/gallery/'.$path.'/'.$name;
             if ($name == '')
             {
@@ -185,14 +185,32 @@ class GalleryController extends AbstractController
                 {
                     throw new \Exception("Photo not found", 404);
                 }
+
+                $items_data = file_get_contents($items_json);
+                $items_data_array = $serializer->decode($items_data, 'json');
+
+                foreach ($items_data_array as $image_data_index => $value)
+                {
+                    $value = $serializer->normalize($value, 'array');
+
+//                    $search = array_search($name, $value);
+                    if ($name == $value['path'])
+                    {
+                        unset($items_data_array[$image_data_index]);
+                        $json = $serializer->serialize($items_data_array, 'json');
+                        $file->dumpFile($items_json, $json);
+                    }
+                }
+
                 foreach ($finder->files()->in($current_dir_path.'/files/gallery/'.$path) as $item)
                 {
-                    if ($file->exists($item->getRealPath()))
+                    if ($file->exists($item->getRealPath()) && $name == $item->getFilename())
                     {
                         $file->remove($item->getRealPath());
                         return $this->json('Photo was deleted', 200) ;
                     }
                 }
+
             }
         } catch (IOExceptionInterface $exception) {
             throw new  \Exception('Unknown error', 500);
