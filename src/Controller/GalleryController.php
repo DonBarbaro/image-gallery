@@ -49,7 +49,7 @@ class GalleryController extends AbstractController
         $file = new Filesystem();
         $current_dir_path = getcwd();
 
-        $data = $request->get('name');
+        $data = $request->get("name");
 
         if (strpos($data, '/')) {
             throw new \Exception('Gallery name can not contain "/"', 400);

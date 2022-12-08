@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Service\ImageResizeService;
 use Imagine\Gd\Imagine;
 use Imagine\Image\Box;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -15,6 +16,10 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class ImageController extends AbstractController
 {
+
+    public function __construct(private ImageResizeService $resizeService)
+    {}
+
     /*
      * GET GALLERIES AND IMAGES
      */
@@ -47,39 +52,13 @@ class ImageController extends AbstractController
     public function generateImg(int $w, int $h, string $path, string $name): Response
     {
         $current_dir = getcwd();
-        $finder = new Finder();
         $file = new Filesystem();
 
         if (!$file->exists($current_dir.'/files/gallery/'.$path.'/'.$name))
         {
             throw new \Exception("Photo not found", 404);
         }
-
-        foreach ($finder->files()->in($current_dir.'/files/gallery/'.$path) as $item)
-        {
-                if (strpos($item->getFilename(), 'jpg') && $name == $item->getFilename())
-                {
-                    if ($w < 0 || $w > 9000 || $h < 0 || $h > 9000 || ( $w == 0 && $h == 0))
-                    {
-                        throw new \Exception("The photo preview can't be generated", 500);
-                    }
-                    list($original_w, $original_h) = getimagesize($item);
-
-                    if ($w == 0 && $h != 0)
-                    {
-                        $w = $original_w;
-                    }
-                    elseif ($w != 0 && $h == 0)
-                    {
-                        $h = $original_h;
-                    }
-
-                    $photo = $item->getRealPath();
-                    $imagine = new Imagine();
-                    $image = $imagine->open($photo);
-                    $image->resize(new Box($w, $h));
-                }
-        }
+        $image = $this->resizeService->resize($w, $h, $path, $name);
 
         return new Response($image, 200, ['Content-type' => 'image/jpeg']);
     }
