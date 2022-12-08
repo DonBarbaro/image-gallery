@@ -59,7 +59,7 @@ V aplikacii bolo potrebné vytvoriť viaceré endpointy, ktoré boli dane a špe
 - **_POST_** - 127.0.0.1:8000/gallery\
 Endpoint na vytvorenie galérie, do body vložime len názov galérie. V pričinku "public/files/" sa vytvorí pričinok s názvom galérie a taktiež sa vytvorí _gallery.json_, ktorý obsahuje informácie o galérii.\
 **REQUEST**\
-![image](https://user-images.githubusercontent.com/42190301/206410355-58db3818-f130-43c6-a4a7-a46c3dceb676.png)\
+![image](https://user-images.githubusercontent.com/42190301/206431402-932c4cfd-2078-4980-9217-8949bb4445a2.png)\
 **RESPONSE**\
 ![image](https://user-images.githubusercontent.com/42190301/206410845-73d02011-6c89-4d61-983e-cd695253a825.png)
 
