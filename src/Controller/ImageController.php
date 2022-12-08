@@ -41,7 +41,6 @@ class ImageController extends AbstractController
         }catch(IOExceptionInterface $exception) {
             throw new \Exception('WRONG', 500);
         }
-        // TODO treba osetrit abz sa pri singel image zobrazovalo ako pole
         return $this->json(['gallery' => $gallery_json, 'images' => $image_json] , 200);
     }
     #[Route(path: '/images/{w}x{h}/{path}/{name}', methods: 'GET')]
@@ -60,14 +59,25 @@ class ImageController extends AbstractController
         {
                 if (strpos($item->getFilename(), 'jpg') && $name == $item->getFilename())
                 {
-                    if ($w < 0 || $w > 9000 || $h < 0 || $h > 9000)
+                    if ($w < 0 || $w > 9000 || $h < 0 || $h > 9000 || ( $w == 0 && $h == 0))
                     {
                         throw new \Exception("The photo preview can't be generated", 500);
                     }
+                    list($original_w, $original_h) = getimagesize($item);
+
+                    if ($w == 0 && $h != 0)
+                    {
+                        $w = $original_w;
+                    }
+                    elseif ($w != 0 && $h == 0)
+                    {
+                        $h = $original_h;
+                    }
+
                     $photo = $item->getRealPath();
                     $imagine = new Imagine();
                     $image = $imagine->open($photo);
-                    $image->resize(new Box($w, $h), );
+                    $image->resize(new Box($w, $h));
                 }
         }
 

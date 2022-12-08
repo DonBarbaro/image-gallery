@@ -2,8 +2,6 @@
 
 namespace App\Controller;
 
-//require_once '../vendor/autoload.php';
-
 use App\Entity\Gallery;
 use App\Entity\Image;
 use App\Entity\Item;
@@ -28,7 +26,6 @@ class GalleryController extends AbstractController
     public function getGallery(): JsonResponse
     {
         $finder = new Finder();
-        $filesystem = new Filesystem();
         $current_dir_path = getcwd();
         $data = [];
         foreach ($finder->directories()->in($current_dir_path.'/files/gallery') as $file)
@@ -36,7 +33,6 @@ class GalleryController extends AbstractController
             $file_name = $file->getRealPath().'/gallery.json';
             $gallery = file_get_contents($file_name);
             $json_data = json_decode($gallery, true);
-
             $data[] = $json_data;
 
         }
@@ -157,9 +153,11 @@ class GalleryController extends AbstractController
 
         return $this->json(['uploaded' => [$json_content_array]], 201, ['header' => 'multipart/form-data']);
     }
+
      /*
       * DELETE GALLERY
       */
+
     #[Route(path: '/gallery/{path}/{name}', name: 'delete', methods: 'DELETE')]
     public function delete(string $path, string $name = '', SerializerInterface $serializer): JsonResponse
     {
@@ -193,7 +191,6 @@ class GalleryController extends AbstractController
                 {
                     $value = $serializer->normalize($value, 'array');
 
-//                    $search = array_search($name, $value);
                     if ($name == $value['path'])
                     {
                         unset($items_data_array[$image_data_index]);
