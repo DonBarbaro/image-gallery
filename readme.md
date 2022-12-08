@@ -38,7 +38,7 @@ Pre spustenie aplikácie je potrebné mať nainštalované PHP verzia 8.1, compo
 ```
 git clone https://github.com/DonBarbaro/image-gallery.git
 ```
-3.) Pre správne fungovanie balička Imagine si musíme v konfiguračném súbore php.ini odkomentvať __extension=gd__. Ak vyskočí error že gd neexistuje, je potrebné ho nainšatlovať manuálne.\
+3.) Pre správne fungovanie balička Imagine si musíme v konfiguračném súbore php.ini odkomentvať __extension=gd__ a taktiež __extension=fileinfo__ pre prácu so súbormi. Ak vyskočí error že gd neexistuje, je potrebné ho nainšatlovať manuálne.\
 2.) Následne sa presunieme do stiahnutého priečinka a nainštalujeme všetko potrebné:
 ```
 composer install
