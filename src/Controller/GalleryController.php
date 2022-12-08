@@ -49,15 +49,15 @@ class GalleryController extends AbstractController
         $file = new Filesystem();
         $current_dir_path = getcwd();
 
-        $data = $request->get("name");
-
-        if (strpos($data, '/')) {
+        $data = json_decode($request->getContent(), true);
+//        dd($data['name']);
+        if (strpos($data['name'], '/')) {
             throw new \Exception('Gallery name can not contain "/"', 400);
         }
 
         $item = new Item();
-        $item->setPath(rawurlencode($data));
-        $item->setName($data);
+        $item->setPath(rawurlencode($data['name']));
+        $item->setName($data['name']);
 
         $path = rawurldecode($item->getPath());
 
@@ -207,7 +207,6 @@ class GalleryController extends AbstractController
                         return $this->json('Photo was deleted', 200) ;
                     }
                 }
-
             }
         } catch (IOExceptionInterface $exception) {
             throw new  \Exception('Unknown error', 500);

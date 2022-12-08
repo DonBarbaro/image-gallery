@@ -48,6 +48,11 @@ class ImageController extends AbstractController
         }
         return $this->json(['gallery' => $gallery_json, 'images' => $image_json] , 200);
     }
+
+    /*
+     * GENERATE IMAGE
+     */
+
     #[Route(path: '/images/{w}x{h}/{path}/{name}', methods: 'GET')]
     public function generateImg(int $w, int $h, string $path, string $name): Response
     {
