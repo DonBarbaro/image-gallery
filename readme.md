@@ -28,7 +28,7 @@
  
  ### O projekte
 
-Api aplikácia na správu galérii a fotografií. Na vytvorenie tejto aplikácie som použil programovací jazyk PHP verzia 8.1 spoločne s frameworkom Symfony verzia 5.4. K tomu Imagine balíček pre správu a jednoduchšiu prácu s fotografiami. Symfony som si vybral preto, lebo v zadaní bolo potrebné pracovať so súbormi a priačinkami, a spomínaný framework ma k tomu výbornu dokumentáciu, taktiež som s nim pracoval už v minulosti no aj tak som sa nevyhol niekotrým veciam, kde bolo potrebné použiť logiku čistáho PHP. Na vytvorenie requestov a respons som používal aplikáciu Postman.
+Api aplikácia na správu galérii a fotografií. Na vytvorenie tejto aplikácie som použil programovací jazyk PHP verzia 8.1 spoločne s frameworkom Symfony verzia 5.4. K tomu Imagine balíček pre správu a jednoduchšiu prácu s fotografiami. Symfony som si vybral preto, lebo v zadaní bolo potrebné pracovať so súbormi a priačinkami, a spomínaný framework ma k tomu výbornu dokumentáciu, taktiež som s nim pracoval už v minulosti no aj tak som sa nevyhol niektorým veciam, kde bolo potrebné použiť logiku čistáho PHP. Na vytvorenie requestov a respons som používal aplikáciu Postman.
 
 ### Spustenie
 
@@ -83,7 +83,7 @@ Endpoit, ktorý nám vypíše galáriu a všetky obrázky ktoré sa v nej nachá
 ![image](https://user-images.githubusercontent.com/42190301/206414978-5d95ce40-23f2-4fb9-91b1-389fffdbb31c.png)
 
 - **_DELETE_** - 127.0.0.1.8000/gallery/{path}/{name}\
-Endpoint, kde {path} je názov gelérie, ktorú chceme vymazať a {name} je názov obrázka ktorý chceme vymazať, tento endpoint si nevyžaduje {name} ak chceme vymazať iba galériu.\
+Endpoint, kde {path} je názov gelérie, ktorú chceme vymazať a {name} je názov obrázka ktorý chceme vymazať, tento endpoint si nevyžaduje {name} ak chceme vymazať iba galériu.
 
 **REQUEST**
 ```
