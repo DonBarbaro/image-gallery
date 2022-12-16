@@ -28,7 +28,7 @@
  
  ### O projekte
 
-Api aplikácia na správu galérii a fotografií. Na vytvorenie tejto aplikácie som použil programovací jazyk PHP verzia 8.1 spoločne s frameworkom Symfony verzia 5.4. K tomu Imagine balíček pre správu a jednoduchšiu prácu s fotografiami. Symfony som si vybral preto, lebo v zadaní bolo potrebné pracovať so súbormi a priačinkami, a spomínaný framework ma k tomu výbornu dokumentáciu, taktiež som s nim pracoval už v minulosti no aj tak som sa nevyhol niekotrým veciam, kde bolo potrebné použiť logiku čistáho PHP. Na vytvorenie requestov a respons som používal aplikáciu Postman.
+Api aplikácia na správu galérii a fotografií. Na vytvorenie tejto aplikácie som použil programovací jazyk PHP verzia 8.1 spoločne s frameworkom Symfony verzia 5.4. K tomu Imagine balíček pre správu a jednoduchšiu prácu s fotografiami. Symfony som si vybral preto, lebo v zadaní bolo potrebné pracovať so súbormi a priačinkami, a spomínaný framework ma k tomu výbornu dokumentáciu, taktiež som s nim pracoval už v minulosti no aj tak som sa nevyhol niektorým veciam, kde bolo potrebné použiť logiku čistáho PHP. Na vytvorenie requestov a respons som používal aplikáciu Postman.
 
 ### Spustenie
 
@@ -38,7 +38,7 @@ Pre spustenie aplikácie je potrebné mať nainštalované PHP verzia 8.1, compo
 ```
 git clone https://github.com/DonBarbaro/image-gallery.git
 ```
-3.) Pre správne fungovanie si musíme v php.ini odkomentvať __extension=gd__.\
+3.) Pre správne fungovanie balička Imagine si musíme v konfiguračném súbore php.ini odkomentvať __extension=gd__ a taktiež __extension=fileinfo__ pre prácu so súbormi. Ak vyskočí error že gd neexistuje, je potrebné ho nainšatlovať manuálne.\
 2.) Následne sa presunieme do stiahnutého priečinka a nainštalujeme všetko potrebné:
 ```
 composer install
@@ -83,7 +83,7 @@ Endpoit, ktorý nám vypíše galáriu a všetky obrázky ktoré sa v nej nachá
 ![image](https://user-images.githubusercontent.com/42190301/206414978-5d95ce40-23f2-4fb9-91b1-389fffdbb31c.png)
 
 - **_DELETE_** - 127.0.0.1.8000/gallery/{path}/{name}\
-Endpoint, kde {path} je názov gelérie, ktorú chceme vymazať a {name} je názov obrázka ktorý chceme vymazať, tento endpoint si nevyžaduje {name} ak chceme vymazať iba galériu.\
+Endpoint, kde {path} je názov gelérie, ktorú chceme vymazať a {name} je názov obrázka ktorý chceme vymazať, tento endpoint si nevyžaduje {name} ak chceme vymazať iba galériu.
 
 **REQUEST**
 ```
