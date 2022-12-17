@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Gallery;
 use App\Entity\Image;
 use App\Entity\Item;
+use App\Service\GalleryService;
 use Doctrine\DBAL\Exception;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Filesystem\Exception\IOExceptionInterface;
@@ -18,6 +19,10 @@ use Symfony\Component\Serializer\SerializerInterface;
 
 class GalleryController extends AbstractController
 {
+    public function __construct(private GalleryService $galleryService)
+    {}
+
+    const FILE_PATH = '/files/gallery';
     /*
      * GET GALLERY
      */
@@ -27,16 +32,12 @@ class GalleryController extends AbstractController
     {
         $finder = new Finder();
         $current_dir_path = getcwd();
-        $data = [];
-        foreach ($finder->directories()->in($current_dir_path.'/files/gallery') as $file)
+        foreach ($finder->directories()->in($current_dir_path.self::FILE_PATH) as $file)
         {
-            $file_name = $file->getRealPath().'/gallery.json';
-            $gallery = file_get_contents($file_name);
-            $json_data = json_decode($gallery, true);
-            $data[] = $json_data;
-
+            $gallery_path = rawurldecode($file->getFilename());
+            $gallery_name = $file->getFilename();
         }
-        return $this->json(['galleries' => $data],200, ['header' => 'application/json']);
+        return $this->json(['galleries' => ['path' => $gallery_path, 'name' => $gallery_name]],200);
     }
 
     /*
@@ -46,9 +47,6 @@ class GalleryController extends AbstractController
     #[Route(path: '/gallery', name: 'galleryPost', methods: 'POST')]
     public function createGallery(Request $request ,SerializerInterface $serializer): JsonResponse
     {
-        $file = new Filesystem();
-        $current_dir_path = getcwd();
-
         $data = json_decode($request->getContent(), true);
 //        dd($data['name']);
         if (strpos($data['name'], '/')) {
@@ -59,32 +57,12 @@ class GalleryController extends AbstractController
         $item->setPath(rawurlencode($data['name']));
         $item->setName($data['name']);
 
-        $path = rawurldecode($item->getPath());
+        $name = rawurldecode($item->getPath());
 
         //vytvori novy priecinok files s gallery a gallery.json ak neexistuje
-        try {
-            $new_dir_path = $current_dir_path . "/files/gallery";
-            $new_file = $current_dir_path . '/files/gallery/'.$path.'/gallery.json';
-            $new_gallery = $current_dir_path.'/files/gallery/'.$path;
-            if(!$file->exists($new_dir_path))
-            {
-                $file->mkdir($new_dir_path, 0777);
-                $file->touch($new_file);
-            }
-            if(!$file->exists($new_gallery))
-            {
-                $file->mkdir($new_gallery, 0777);
-            }
-        }catch (IOExceptionInterface $exception) {
-            echo "Error creating directory at" . $exception->getPath();
-        }
+        $this->galleryService->createGalleryService($name);
 
-        $jsonContentArray = $serializer->normalize($item, 'array', ['groups' => 'item']);
-        $jsonContentFile = $serializer->serialize($item, 'json');
-
-        $file->dumpFile($new_file, $jsonContentFile);
-
-        return $this->json($jsonContentArray, 201, ['header' => 'application/json']);
+        return $this->json(['path' => rawurlencode($name), 'name' => $name], 201);
     }
 
     /*
