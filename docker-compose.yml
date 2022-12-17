@@ -1,21 +1,70 @@
-version: '3'
+version: '3.8'
 
 services:
-###> doctrine/doctrine-bundle ###
-  database:
-    image: postgres:${POSTGRES_VERSION:-14}-alpine
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-app}
-      # You should definitely change the password in production
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-!ChangeMe!}
-      POSTGRES_USER: ${POSTGRES_USER:-app}
+  nginx:
+    image: nginx:alpine
     volumes:
-      - db-data:/var/lib/postgresql/data:rw
-      # You may use a bind-mounted host directory instead, so that it is harder to accidentally remove the volume and lose all your data!
-      # - ./docker/db/data:/var/lib/postgresql/data:rw
-###< doctrine/doctrine-bundle ###
+      - ./:/var/www/html/:delegated
+      - ./.docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./.docker/nginx/sites/:/etc/nginx/sites-available
+      - ./.docker/nginx/conf.d/:/etc/nginx/conf.d
+    depends_on:
+      - php
+    networks:
+      demo-net:
+        aliases:
+          - demo.local
+    ports:
+      - "80:80"
+  php:
+    build: './docker/php'
+    volumes:
+      - ./:/var/www/html/:delegated
+    depends_on:
+      - database
+    environment:
+      PHP_INI_MAX_EXECUTION_TIME: "300"
+      PHP_EXTENSION_INTL: 1
+      PHP_EXTENSION_XDEBUG: 1
+      PHP_INI_XDEBUG__MODE: "debug,develop"
+      PHP_INI_XDEBUG__CLIENT_PORT: 10000
+      PHP_INI_XDEBUG__IDEKEY: PHPSTORM
+      PHP_INI_XDEBUG__START_WITH_REQUEST: yes
+      PHP_IDE_CONFIG: "serverName=demo.local"
+      PHP_EXTENSION_PGSQL: 1
+      PHP_EXTENSION_PDO_PGSQL: 1
+      PHP_EXTENSION_MYSQLI: 0
+      PHP_EXTENSION_AMQP: 1
+    #      STARTUP_COMMAND_1: composer install
+    #      STARTUP_COMMAND_2: php bin/console do:m:m --no-interaction
+    #      STARTUP_COMMAND_3: php bin/console do:f:l --group=default --no-interaction
+    networks:
+      - demo-net
+
+  database:
+    image: dockette/postgres:13
+    environment:
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=demo-db
+    volumes:
+      - database-volume:/var/lib/postgresql/data
+    ports:
+      - "5421:5432"
+    networks:
+      - demo-net
+
+  adminer:
+    image: dockette/adminer:dg
+    ports:
+      - "8001:80"
+    networks:
+      - demo-net
 
 volumes:
-###> doctrine/doctrine-bundle ###
-  db-data:
-###< doctrine/doctrine-bundle ###
+  database-volume:
+
+networks:
+  demo-net:
+    driver: bridge
+

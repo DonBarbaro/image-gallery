@@ -14,15 +14,23 @@ use Symfony\Component\Finder\Finder;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\Validator\Constraint as Assert;
+use Symfony\Component\Validator\Validation;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
+use Throwable;
+
+const FILE_PATH = '/files/gallery/';
+const ITEMS = '/items.json';
+define('GALLERY_DIR_PATH', getcwd() . FILE_PATH);
 
 class GalleryController extends AbstractController
 {
     public function __construct(private GalleryService $galleryService)
     {}
 
-    const FILE_PATH = '/files/gallery';
     /*
      * GET GALLERY
      */
@@ -31,13 +39,14 @@ class GalleryController extends AbstractController
     public function getGallery(): JsonResponse
     {
         $finder = new Finder();
-        $current_dir_path = getcwd();
-        foreach ($finder->directories()->in($current_dir_path.self::FILE_PATH) as $file)
+
+        foreach ($finder->directories()->in(GALLERY_DIR_PATH) as $file)
         {
-            $gallery_path = rawurldecode($file->getFilename());
+            $gallery_path = rawurlencode($file->getFilename());
             $gallery_name = $file->getFilename();
+            $data[] = ['path' => $gallery_path, 'name' => $gallery_name];
         }
-        return $this->json(['galleries' => ['path' => $gallery_path, 'name' => $gallery_name]],200);
+        return $this->json(['galleries' => $data],200);
     }
 
     /*
@@ -45,23 +54,37 @@ class GalleryController extends AbstractController
      */
 
     #[Route(path: '/gallery', name: 'galleryPost', methods: 'POST')]
-    public function createGallery(Request $request ,SerializerInterface $serializer): JsonResponse
+    public function createGallery(Request $request): JsonResponse
     {
+
         $data = json_decode($request->getContent(), true);
-//        dd($data['name']);
-        if (strpos($data['name'], '/')) {
-            throw new \Exception('Gallery name can not contain "/"', 400);
+
+        if (!isset($data) || !in_array('name', $data))
+        {
+            //TODO vyriesit podmineku bo nefunguje
+            return new JsonResponse([
+                'code' => 400,
+                'payload' => [
+                    'paths' => ["name"],
+                    'validator' => 'required',
+                    'example' => null,
+                ],
+                'name' => 'INVALID_SCHEMA',
+                'description' => "Bad JSON object: u'name' is a required property"
+            ], 400);
+        }else{
+            if (strpos($data['name'], '/')) {
+                throw new HttpException(400, 'Gallery name can not contain "/"');
+            }
+            $item = new Item();
+            $item->setPath(rawurlencode($data['name']));
+            $item->setName($data['name']);
+
+            $name = rawurldecode($item->getPath());
+
+            //vytvori novy priecinok files s gallery a gallery.json ak neexistuje
+            $this->galleryService->createGalleryService($name);
         }
-
-        $item = new Item();
-        $item->setPath(rawurlencode($data['name']));
-        $item->setName($data['name']);
-
-        $name = rawurldecode($item->getPath());
-
-        //vytvori novy priecinok files s gallery a gallery.json ak neexistuje
-        $this->galleryService->createGalleryService($name);
-
         return $this->json(['path' => rawurlencode($name), 'name' => $name], 201);
     }
 
@@ -73,15 +96,17 @@ class GalleryController extends AbstractController
     public function uploadImage(Request $request, SerializerInterface $serializer, string $path): JsonResponse
     {
         $file = new Filesystem();
-        $current_dir_path = getcwd();
+
         //ak neexistuje gallery s nazvom, vyhodí error
-        if(!$file->exists($current_dir_path.'/files/gallery/'.$path))
+        if(!$file->exists(GALLERY_DIR_PATH . $path))
         {
-            throw new \Exception('Gallery not found', 404);
+            throw new HttpException(404, 'Gallery not found');
         }
-        try {
-            $new_dir_path = $current_dir_path . "/files/gallery/".$path;
-            $new_file = $current_dir_path . "/files/gallery/".$path.'/items.json';
+
+        try
+        {
+            $new_dir_path = GALLERY_DIR_PATH . $path;
+            $new_file = GALLERY_DIR_PATH . $path . ITEMS;
             if($file->exists($new_dir_path))
             {
 //                $file->mkdir($new_dir_path, 0777);
@@ -90,11 +115,13 @@ class GalleryController extends AbstractController
         }catch (IOExceptionInterface $exception) {
             throw new Exception($exception->getPath(), 400);
         }
+//        $this->galleryService->uploadImage($path);
 
         $uploaded_file= $request->files;
+
         if (!$uploaded_file->get('file'))
         {
-            throw new \Exception('File not found', 400);
+            throw new HttpException(400, 'File not found');
         }
 
         $info = $uploaded_file->get('file');
@@ -107,7 +134,6 @@ class GalleryController extends AbstractController
 
         // serializujem objekt -> json
         $json_content_file = $serializer->serialize(array($img), 'json');
-
         $json_content_array = $serializer->normalize($img, 'json');
 
         //prida novy img do {path}.json
@@ -115,18 +141,13 @@ class GalleryController extends AbstractController
         // ked je json prazdny prida text a obrazok
         if ($get_data == ''){
             $file->dumpFile($new_file, $json_content_file);
-            $info->move($new_dir_path, $img->getName().'.jpg');
-        }
-
-        //ked json nie je prazdny zoberie data a prida do pola novy obrazok a prida novy obrazok
-        if(!$get_data == ''){
+            $info->move($new_dir_path, $info->getClientOriginalName());
+        }else{ //ked json nie je prazdny zoberie data a prida do pola novy item a prida novy obrazok
             $data_to_array = $serializer->decode($get_data, 'json');
             array_push($data_to_array, $json_content_array);
             $json = $serializer->serialize($data_to_array, 'json');
             $file->dumpFile($new_file, $json);
-
-            // iba jpg obrazky
-            $info->move($new_dir_path, $img->getName().'.jpg');
+            $info->move($new_dir_path, $info->getClientOriginalName());
         }
 
         return $this->json(['uploaded' => [$json_content_array]], 201, ['header' => 'multipart/form-data']);
@@ -141,12 +162,11 @@ class GalleryController extends AbstractController
     {
         $file = new Filesystem();
         $finder = new Finder();
-        $current_dir_path = getcwd();
         // $path automaticky decoduje
         try {
-            $gallery_dir = $current_dir_path . '/files/gallery/'.$path;
-            $items_json = $current_dir_path . '/files/gallery/'.$path.'/items.json';
-            $img = $current_dir_path.'/files/gallery/'.$path.'/'.$name;
+            $gallery_dir = GALLERY_DIR_PATH . $path;
+            $items_json = GALLERY_DIR_PATH . $path . ITEMS ;
+            $img = GALLERY_DIR_PATH . $path . '/'. $name;
             if ($name == '')
             {
                 if ($file->exists($gallery_dir))
@@ -177,7 +197,7 @@ class GalleryController extends AbstractController
                     }
                 }
 
-                foreach ($finder->files()->in($current_dir_path.'/files/gallery/'.$path) as $item)
+                foreach ($finder->files()->in(GALLERY_DIR_PATH . $path) as $item)
                 {
                     if ($file->exists($item->getRealPath()) && $name == $item->getFilename())
                     {
@@ -192,4 +212,6 @@ class GalleryController extends AbstractController
 
         return $this->json('Gallery/photo was deleted', 200) ;
     }
+
+
 }

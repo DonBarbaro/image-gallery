@@ -8,17 +8,20 @@ use Imagine\Image\Box;
 use Symfony\Component\Filesystem\Exception\IOExceptionInterface;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
+use const App\Controller\FILE_PATH;
+use const App\Controller\ITEMS;
+
 
 class ImageService
 {
+
     public function getPhotos(string $path)
     {
         $file = new Filesystem();
-        $current_dir = getcwd();
         // $path automaticky decoduje
         try {
-            $gallery_file = $current_dir.'/files/gallery/'.$path;
-            $image_file = $current_dir.'/files/gallery/'.$path.'/items.json';
+            $gallery_file = GALLERY_DIR_PATH .  $path;
+            $image_file = GALLERY_DIR_PATH . $path . ITEMS;
 
             if ($file->exists([$gallery_file, $image_file]))
             {
@@ -37,15 +40,16 @@ class ImageService
     {
         $file = new Filesystem();
         $finder = new Finder();
-        $current_dir = getcwd();
 
-        if (!$file->exists($current_dir.'/files/gallery/'.$path.'/'.$name))
+        if (!$file->exists(GALLERY_DIR_PATH .  $path . '/' . $name))
         {
             throw new \Exception("Photo not found", 404);
         }
 
-        foreach ($finder->files()->in($current_dir . '/files/gallery/' . $path) as $item) {
-            if (strpos($item->getFilename(), 'jpg') && $name == $item->getFilename()) {
+        foreach ($finder->files()->in(GALLERY_DIR_PATH . $path) as $item) {
+
+            $extensions = ['jpg', 'png', 'jpeg'];
+            if (in_array($item->getExtension(), $extensions) && $name == $item->getFilename()) {
                 if ($w < 0 || $w > 9000 || $h < 0 || $h > 9000 || ($w == 0 && $h == 0)) {
                     throw new \Exception("The photo preview can't be generated", 500);
                 }
