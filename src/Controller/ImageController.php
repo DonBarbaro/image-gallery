@@ -28,7 +28,7 @@ class ImageController extends AbstractController
     public function getPhotos(string $path): JsonResponse
     {
         $image_json = $this->imageService->getPhotos($path);
-        return $this->json(['gallery' => ['path' => $path, 'name' => rawurldecode($path)], 'images' => $image_json] , 200);
+        return $this->json(['gallery' => ['path' => rawurlencode($path), 'name' => $path], 'images' => $image_json] , 200);
     }
 
     /*

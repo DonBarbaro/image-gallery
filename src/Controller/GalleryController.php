@@ -17,10 +17,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Serializer\SerializerInterface;
-use Symfony\Component\Validator\Constraint as Assert;
-use Symfony\Component\Validator\Validation;
-use Symfony\Component\Validator\Validator\ValidatorInterface;
-use Throwable;
+
 
 const FILE_PATH = '/files/gallery/';
 const ITEMS = '/items.json';
@@ -59,9 +56,8 @@ class GalleryController extends AbstractController
 
         $data = json_decode($request->getContent(), true);
 
-        if (!isset($data) || !in_array('name', $data))
+        if (!isset($data) || !array_key_exists('name', $data))
         {
-            //TODO vyriesit podmineku bo nefunguje
             return new JsonResponse([
                 'code' => 400,
                 'payload' => [
@@ -96,7 +92,6 @@ class GalleryController extends AbstractController
     public function uploadImage(Request $request, SerializerInterface $serializer, string $path): JsonResponse
     {
         $file = new Filesystem();
-
         //ak neexistuje gallery s nazvom, vyhodí error
         if(!$file->exists(GALLERY_DIR_PATH . $path))
         {
@@ -109,14 +104,13 @@ class GalleryController extends AbstractController
             $new_file = GALLERY_DIR_PATH . $path . ITEMS;
             if($file->exists($new_dir_path))
             {
-//                $file->mkdir($new_dir_path, 0777);
                 $file->touch($new_file);
             }
         }catch (IOExceptionInterface $exception) {
             throw new Exception($exception->getPath(), 400);
         }
-//        $this->galleryService->uploadImage($path);
 
+        //TODO tu treba zvalidovat obrazok
         $uploaded_file= $request->files;
 
         if (!$uploaded_file->get('file'))
@@ -132,86 +126,80 @@ class GalleryController extends AbstractController
         $img->setName(pathinfo($info->getClientOriginalName(), PATHINFO_FILENAME));
         $img->setModified((date("Y-m-d H:i:s")));
 
-        // serializujem objekt -> json
-        $json_content_file = $serializer->serialize(array($img), 'json');
-        $json_content_array = $serializer->normalize($img, 'json');
+        $data = $this->galleryService->addToItems($path, $img, $info);
 
-        //prida novy img do {path}.json
-        $get_data = file_get_contents($new_file);
-        // ked je json prazdny prida text a obrazok
-        if ($get_data == ''){
-            $file->dumpFile($new_file, $json_content_file);
-            $info->move($new_dir_path, $info->getClientOriginalName());
-        }else{ //ked json nie je prazdny zoberie data a prida do pola novy item a prida novy obrazok
-            $data_to_array = $serializer->decode($get_data, 'json');
-            array_push($data_to_array, $json_content_array);
-            $json = $serializer->serialize($data_to_array, 'json');
-            $file->dumpFile($new_file, $json);
-            $info->move($new_dir_path, $info->getClientOriginalName());
+        return $this->json(['uploaded' => [$data]], 201, ['header' => 'multipart/form-data']);
+    }
+
+    /*
+     * DELETE GALLERY
+     */
+
+    #[Route(path: '/gallery/{path}', name: 'deleteGallery', methods: 'DELETE')]
+    public function deleteGallery(string $path):JsonResponse
+    {
+        $file = new Filesystem();
+        // $path automaticky decoduje
+        $gallery_dir = GALLERY_DIR_PATH . $path;
+        if ($file->exists($gallery_dir))
+        {
+            $file->remove($gallery_dir);
+            return $this->json('Gallery was deleted', 200) ;
+        }else{
+            throw new HttpException(404, 'Gallery does not exist');
         }
-
-        return $this->json(['uploaded' => [$json_content_array]], 201, ['header' => 'multipart/form-data']);
     }
 
      /*
-      * DELETE GALLERY
+      * DELETE PHOTO
       */
 
-    #[Route(path: '/gallery/{path}/{name}', name: 'delete', methods: 'DELETE')]
-    public function delete(string $path, string $name = '', SerializerInterface $serializer): JsonResponse
+    #[Route(path: '/gallery/{path}/{name}', name: 'deletePhoto', methods: 'DELETE')]
+    public function deletePhoto(string $path, string $name, SerializerInterface $serializer): JsonResponse
     {
         $file = new Filesystem();
         $finder = new Finder();
         // $path automaticky decoduje
-        try {
-            $gallery_dir = GALLERY_DIR_PATH . $path;
-            $items_json = GALLERY_DIR_PATH . $path . ITEMS ;
-            $img = GALLERY_DIR_PATH . $path . '/'. $name;
-            if ($name == '')
-            {
-                if ($file->exists($gallery_dir))
-                {
-                    $file->remove($gallery_dir);
-                    return $this->json('Gallery was deleted', 200) ;
-                }else{
-                    throw new \Exception('Gallery does not exist', 404);
-                }
-            }else{
-                if (!$file->exists($img))
-                {
-                    throw new \Exception("Photo not found", 404);
-                }
-
-                $items_data = file_get_contents($items_json);
-                $items_data_array = $serializer->decode($items_data, 'json');
-
-                foreach ($items_data_array as $image_data_index => $value)
-                {
-                    $value = $serializer->normalize($value, 'array');
-
-                    if ($name == $value['path'])
-                    {
-                        unset($items_data_array[$image_data_index]);
-                        $json = $serializer->serialize($items_data_array, 'json');
-                        $file->dumpFile($items_json, $json);
-                    }
-                }
-
-                foreach ($finder->files()->in(GALLERY_DIR_PATH . $path) as $item)
-                {
-                    if ($file->exists($item->getRealPath()) && $name == $item->getFilename())
-                    {
-                        $file->remove($item->getRealPath());
-                        return $this->json('Photo was deleted', 200) ;
-                    }
-                }
-            }
-        } catch (IOExceptionInterface $exception) {
-            throw new  \Exception('Unknown error', 500);
-        }
-
-        return $this->json('Gallery/photo was deleted', 200) ;
+            $this->galleryService->delete($path, $name);
+            return $this->json('Photo was deleted', 200);
     }
 
+        /**
+         * MOVE PHOTO
+         */
 
+        #[Route(path: '/gallery/{path}/{name}', name: 'movePhoto', methods: 'PUT')]
+        public function move(Request $request, string $path, string $name):JsonResponse
+        {
+
+            $file = new Filesystem();
+            $finder = new Finder();
+
+            try {
+                $gallery_name = $request->toArray();
+                $gallery_path = GALLERY_DIR_PATH . $gallery_name['gallery'];
+
+                if (!$file->exists($gallery_path))
+                {
+                    throw new HttpException(404, 'Direct gallery does not exists');
+                }
+
+                $this->galleryService->delete($path, $name);
+
+
+                try {
+                    foreach ($finder->files()->in(GALLERY_DIR_PATH . $path) as $item) {
+                        if ($file->exists($item->getRealPath()) && $name == $item->getFilename()) {
+                            $file->copy(GALLERY_DIR_PATH . $path . '/' . $name, $gallery_path . '/' . $name);
+                            $file->remove(GALLERY_DIR_PATH . $path . '/' . $name);
+                        }
+                    }
+                }catch (IOExceptionInterface $exception){
+                    throw new HttpException( 500, 'File was not removed'. $exception->getPath());
+                }
+            }catch (IOExceptionInterface $exception){
+                throw new HttpException( 500, 'Unknown error in' . $exception->getPath());
+            }
+            return $this->json('Photo from gallery '. $path .' was moved to gallery '. $gallery_name['gallery'], 200);
+        }
 }
