@@ -12,7 +12,7 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 use const App\Controller\FILE_PATH;
 use const App\Controller\ITEMS;
 
-define('GALLERY_DIR_PATH', getcwd() . FILE_PATH);
+//define('GALLERY_DIR_PATH', getcwd() . FILE_PATH);
 
 class ImageService
 {

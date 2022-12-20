@@ -168,10 +168,9 @@ class GalleryController extends AbstractController
          * MOVE PHOTO
          */
 
-        #[Route(path: '/gallery/{path}/{name}', name: 'movePhoto', methods: 'PUT')]
-        public function move(Request $request, string $path, string $name):JsonResponse
+        #[Route(path: '/gallery/{path}/{name}', name: 'movePhoto', methods: 'POST')]
+        public function move(Request $request, string $path, string $name, SerializerInterface $serializer): JsonResponse
         {
-
             $file = new Filesystem();
             $finder = new Finder();
 
@@ -184,19 +183,29 @@ class GalleryController extends AbstractController
                     throw new HttpException(404, 'Direct gallery does not exists');
                 }
 
-                $this->galleryService->delete($path, $name);
+                $get_new_items = file_get_contents($gallery_path . ITEMS);
+                $new_items_to_array = json_decode($get_new_items);  //pole itemov z novej galerie
+                $get_current_items = file_get_contents(GALLERY_DIR_PATH . $path . ITEMS);
+                $current_items_to_array = json_decode($get_current_items); //pole itemov zo starej galerie
 
-
-                try {
-                    foreach ($finder->files()->in(GALLERY_DIR_PATH . $path) as $item) {
-                        if ($file->exists($item->getRealPath()) && $name == $item->getFilename()) {
-                            $file->copy(GALLERY_DIR_PATH . $path . '/' . $name, $gallery_path . '/' . $name);
-                            $file->remove(GALLERY_DIR_PATH . $path . '/' . $name);
-                        }
+                foreach ($current_items_to_array as $image_data_index => $value)
+                {
+                    $value = $serializer->normalize($value, 'array');
+                    if ($name == $value['path'])
+                    {
+                        array_push($new_items_to_array, $current_items_to_array[$image_data_index]);
+                        $json = $serializer->serialize($new_items_to_array, 'json');
+                        $file->dumpFile($gallery_path . ITEMS, $json);
                     }
-                }catch (IOExceptionInterface $exception){
-                    throw new HttpException( 500, 'File was not removed'. $exception->getPath());
                 }
+
+                foreach ($finder->files()->in(GALLERY_DIR_PATH . $path) as $item) {
+                    if ($file->exists($item->getRealPath()) && $name == $item->getFilename()) {
+                        $file->copy(GALLERY_DIR_PATH . $path . '/' . $name, $gallery_path . '/' . $name);
+                    }
+                }
+                $this->galleryService->delete($path, $name);  //vymaze obrazk v items
+
             }catch (IOExceptionInterface $exception){
                 throw new HttpException( 500, 'Unknown error in' . $exception->getPath());
             }

@@ -11,14 +11,12 @@ use Symfony\Component\Serializer\SerializerInterface;
 use const App\Controller\ITEMS;
 use const App\Controller\FILE_PATH;
 
-define('GALLERY_DIR_PATH', getcwd() . FILE_PATH);
-
+//define('GALLERY_DIR_PATH', getcwd() . FILE_PATH);
 
 class GalleryService
 {
-    public function __construct(private SerializerInterface $serializer, Request $request)
-    {
-    }
+    public function __construct(private SerializerInterface $serializer)
+    {}
 
     public function createGalleryService(string $name):void
     {
@@ -75,10 +73,11 @@ class GalleryService
     {
         $finder = new Finder();
         $file = new Filesystem();
+        $items_json = GALLERY_DIR_PATH . $path . ITEMS;
+        $img = GALLERY_DIR_PATH . $path . '/' . $name;
 
         try {
-            $items_json = GALLERY_DIR_PATH . $path . ITEMS;
-            $img = GALLERY_DIR_PATH . $path . '/' . $name;
+
             if (!$file->exists($img)) {
                 throw new HttpException(404, 'Photo not found');
             }
@@ -90,8 +89,10 @@ class GalleryService
                 $value = $this->serializer->normalize($value, 'array');
 
                 if ($name == $value['path']) {
+//                    dd($items_data_array[$image_data_index]);
                     unset($items_data_array[$image_data_index]);
-                    $json = $this->serializer->serialize($items_data_array, 'json');
+                    $reindex_items_data_array = array_values($items_data_array);
+                    $json = $this->serializer->serialize($reindex_items_data_array, 'json');
                     $file->dumpFile($items_json, $json);
                 }
             }
