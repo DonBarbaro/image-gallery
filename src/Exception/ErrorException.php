@@ -10,7 +10,7 @@ class ErrorException extends HttpException
 {
     public function __construct(ApiError $apiError, \Exception $previous = null, array $headers = array(), $code = 0)
     {
-        $this->apiError = $apiError;
+        $this->apirror = $apiError;
         $statusCode = $apiError->getStatusCode();
         $message = $apiError->getMessage();
         parent::__construct($statusCode, $message, $previous, $headers, $code);

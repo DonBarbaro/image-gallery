@@ -13,13 +13,13 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Filesystem\Exception\IOExceptionInterface;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
-use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Serializer\SerializerInterface;
-
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 const FILE_PATH = '/files/gallery/';
 const ITEMS = '/items.json';
@@ -55,6 +55,7 @@ class GalleryController extends AbstractController
 
         if (!isset($data) || !array_key_exists('name', $data))
         {
+            //error len zo zadania
             return new JsonResponse([
                 'code' => 400,
                 'payload' => [
@@ -67,8 +68,8 @@ class GalleryController extends AbstractController
             ], 400);
         }else{
             if (strpos($data['name'], '/')) {
-                $apiError = new ApiError(400, ApiError::TYPE_GALLERY_NAME_CAN_NOT_CONTAIN);
-                throw new ErrorException($apiError);
+                $api_error = new ApiError(400, ApiError::TYPE_GALLERY_NAME_CAN_NOT_CONTAIN);
+                throw new ErrorException($api_error);
             }
             $item = new Item();
             $item->setPath(rawurlencode($data['name']));
@@ -85,20 +86,19 @@ class GalleryController extends AbstractController
     /* GALLERY UPLOAD IMAGE */
 
     #[Route(path: '/gallery/{path}', name: 'uploadImage', methods: 'POST')]
-    public function uploadImage(Request $request, SerializerInterface $serializer, string $path): JsonResponse
+    public function uploadImage(Request $request, SerializerInterface $serializer, string $path, ValidatorInterface $validator): JsonResponse
     {
         $file = new Filesystem();
+        $new_dir_path = GALLERY_DIR_PATH . $path;
+        $new_file = GALLERY_DIR_PATH . $path . ITEMS;
         //ak neexistuje gallery s nazvom, vyhodí error
         if(!$file->exists(GALLERY_DIR_PATH . $path))
         {
-            $apiError = new ApiError(404, ApiError::TYPE_GALLERY_NOT_FOUND);
-            throw new ErrorException($apiError);
+            $api_error = new ApiError(404, ApiError::TYPE_GALLERY_NOT_FOUND);
+            throw new ErrorException($api_error);
         }
-
         try
         {
-            $new_dir_path = GALLERY_DIR_PATH . $path;
-            $new_file = GALLERY_DIR_PATH . $path . ITEMS;
             if($file->exists($new_dir_path))
             {
                 $file->touch($new_file);
@@ -107,9 +107,7 @@ class GalleryController extends AbstractController
             throw new Exception($exception->getPath(), 400);
         }
 
-        //TODO tu treba zvalidovat obrazok
         $uploaded_file= $request->files;
-
         if (!$uploaded_file->get('file'))
         {
             $apiError = new ApiError(400, ApiError::TYPE_FILE_NOT_FOUND);
@@ -119,10 +117,21 @@ class GalleryController extends AbstractController
         $info = $uploaded_file->get('file');
 
         $img = new Image();
+        $img->setFile($info);
         $img->setPath($info->getClientOriginalName());
         $img->setFullPath(rawurlencode($path).'/'.$img->getPath());
         $img->setName(pathinfo($info->getClientOriginalName(), PATHINFO_FILENAME));
         $img->setModified((date("Y-m-d H:i:s")));
+
+        $errors = $validator->validate($img); //validacia image
+        if (count($errors) > 0)
+        {
+            $errorsString = (string) $errors;
+            return $this->json([
+                'error' => $errorsString,
+                'status' => 400
+            ], 400);
+        }
 
         $data = $this->galleryService->addToItems($path, $img, $info);
 
@@ -132,19 +141,19 @@ class GalleryController extends AbstractController
     /* DELETE GALLERY */
 
     #[Route(path: '/gallery/{path}', name: 'deleteGallery', methods: 'DELETE')]
-    public function deleteGallery(string $path):JsonResponse
+    public function deleteGallery(string $path): JsonResponse
     {
         $file = new Filesystem();
-        // $path automaticky decoduje
-        $gallery_dir = GALLERY_DIR_PATH . $path;
+        $gallery_dir = GALLERY_DIR_PATH . $path;  // $path automaticky decoduje
+
         try {
             if ($file->exists($gallery_dir))
             {
                 $file->remove($gallery_dir);
                 return $this->json('Gallery was deleted', 200) ;
             }else{
-                $apiError = new ApiError(404, ApiError::TYPE_GALLERY_DOES_NOT_EXISTS);
-                throw new ErrorException($apiError);
+                $api_error = new ApiError(404, ApiError::TYPE_GALLERY_DOES_NOT_EXISTS);
+                throw new ErrorException($api_error);
             }
         }catch(IOExceptionInterface $exception) {
             throw new \Exception('Unknown error', 500);
@@ -156,9 +165,6 @@ class GalleryController extends AbstractController
     #[Route(path: '/gallery/{path}/{name}', name: 'deletePhoto', methods: 'DELETE')]
     public function deletePhoto(string $path, string $name, SerializerInterface $serializer): JsonResponse
     {
-        $file = new Filesystem();
-        $finder = new Finder();
-        // $path automaticky decoduje
             $this->galleryService->delete($path, $name);
             return $this->json('Photo was deleted', 200);
     }
@@ -170,11 +176,10 @@ class GalleryController extends AbstractController
         {
             $file = new Filesystem();
             $finder = new Finder();
+            $gallery_name = $request->toArray();
+            $gallery_path = GALLERY_DIR_PATH . $gallery_name['gallery'];
 
             try {
-                $gallery_name = $request->toArray();
-                $gallery_path = GALLERY_DIR_PATH . $gallery_name['gallery'];
-
                 if (!$file->exists($gallery_path))
                 {
                     $apiError = new ApiError(400, ApiError::TYPE_DIRECT_GALLERY_DOES_NOT_EXIST);
@@ -197,7 +202,8 @@ class GalleryController extends AbstractController
                     }
                 }
 
-                foreach ($finder->files()->in(GALLERY_DIR_PATH . $path) as $item) {
+                foreach ($finder->files()->in(GALLERY_DIR_PATH . $path) as $item)
+                {
                     if ($file->exists($item->getRealPath()) && $name == $item->getFilename()) {
                         $file->copy(GALLERY_DIR_PATH . $path . '/' . $name, $gallery_path . '/' . $name);
                     }
@@ -205,7 +211,7 @@ class GalleryController extends AbstractController
                 $this->galleryService->delete($path, $name);  //vymaze obrazk v items
 
             }catch (IOExceptionInterface $exception){
-                throw new HttpException( 500, 'Unknown error in' . $exception->getPath());
+                throw new HttpException( 500, 'Unknown error' . $exception->getPath());
             }
             return $this->json('Photo from gallery '. $path .' was moved to gallery '. $gallery_name['gallery'], 200);
         }

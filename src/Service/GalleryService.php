@@ -54,27 +54,34 @@ class GalleryService
         $file = new Filesystem();
         $new_dir_path = GALLERY_DIR_PATH . $path;
         $new_file = GALLERY_DIR_PATH . $path . ITEMS;
-        // serializujem objekt -> json
-        $json_content_file = $this->serializer->serialize(array($img), 'json');
+        $keys = ['path', 'fullPath', 'name', 'modified'];
+
         $json_content_array = $this->serializer->normalize($img, 'json');
+
+        $filtered_array = array_filter($json_content_array, function ($filtered) use ($keys){ //filtrujem pole aby tam nebol file
+            return in_array($filtered, $keys);
+        }, ARRAY_FILTER_USE_KEY);
+        $filtered_content = json_encode(array($filtered_array));
 
         //prida novy img do {path}.json
         $get_data = file_get_contents($new_file);
         // ked je json prazdny prida text a obrazok
-        if ($get_data == ''){
-            $file->dumpFile($new_file, $json_content_file);
+        if ($get_data == '')
+        {
+            $file->dumpFile($new_file, $filtered_content);
             $info->move($new_dir_path, $info->getClientOriginalName());
         }else{ //ked json nie je prazdny zoberie data a prida do pola novy item a prida novy obrazok
             $data_to_array = $this->serializer->decode($get_data, 'json');
-            array_push($data_to_array, $json_content_array);
+            array_push($data_to_array, $filtered_array);
             $json = $this->serializer->serialize($data_to_array, 'json');
             $file->dumpFile($new_file, $json);
+
             $info->move($new_dir_path, $info->getClientOriginalName());
         }
-        return $json_content_array;
+        return $filtered_array;
     }
 
-    public function delete($path, $name):void
+    public function delete($path, $name): void
     {
         $finder = new Finder();
         $file = new Filesystem();
@@ -82,7 +89,6 @@ class GalleryService
         $img = GALLERY_DIR_PATH . $path . '/' . $name;
 
         try {
-
             if (!$file->exists($img)) {
                 $apiError = new ApiError(400, ApiError::TYPE_PHOTO_NOT_FOUND);
                 throw new ErrorException($apiError);
@@ -91,11 +97,12 @@ class GalleryService
             $items_data = file_get_contents($items_json);
             $items_data_array = $this->serializer->decode($items_data, 'json');
 
-            foreach ($items_data_array as $image_data_index => $value) {
+            foreach ($items_data_array as $image_data_index => $value)
+            {
                 $value = $this->serializer->normalize($value, 'array');
 
-                if ($name == $value['path']) {
-//                    dd($items_data_array[$image_data_index]);
+                if ($name == $value['path'])
+                {
                     unset($items_data_array[$image_data_index]);
                     $reindex_items_data_array = array_values($items_data_array);
                     $json = $this->serializer->serialize($reindex_items_data_array, 'json');
@@ -103,8 +110,10 @@ class GalleryService
                 }
             }
 
-            foreach ($finder->files()->in(GALLERY_DIR_PATH . $path) as $item) {
-                if ($file->exists($item->getRealPath()) && $name == $item->getFilename()) {
+            foreach ($finder->files()->in(GALLERY_DIR_PATH . $path) as $item)
+            {
+                if ($file->exists($item->getRealPath()) && $name == $item->getFilename())
+                {
                     $file->remove($item->getRealPath());
                 }
             }

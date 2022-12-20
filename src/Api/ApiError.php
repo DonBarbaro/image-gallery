@@ -27,18 +27,12 @@ class ApiError
         self::TYPE_PHOTO_DOES_NOT_EXISTS => 'Photo does not exist',
         self::TYPE_DIRECT_GALLERY_DOES_NOT_EXIST => 'Direct gallery does not exists',
 
-
     );
-    private $statusCode;
-    private $type;
-    private $message;
+    private int $statusCode;
+    private string $message;
     public function __construct($statusCode, $type)
     {
         $this->statusCode = $statusCode;
-        $this->type = $type;
-        if (!isset(self::$titles[$type])) {
-            throw new \InvalidArgumentException('No title for type '.$type);
-        }
         $this->message = self::$titles[$type];
     }
     public function getStatusCode()

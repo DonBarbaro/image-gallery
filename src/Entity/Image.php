@@ -4,6 +4,8 @@ namespace App\Entity;
 
 use App\Repository\ImageRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\HttpFoundation\File\File;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ImageRepository::class)]
 class Image
@@ -24,6 +26,12 @@ class Image
 
     #[ORM\Column(length: 255)]
     private string $name;
+
+    #[Assert\File(
+        mimeTypes: ['image/png', 'image/jpeg']
+    )]
+    #[ORM\Column(length: 255)]
+    private $file;
 
     #[ORM\Column(length: 255)]
     private string $modified;
@@ -106,5 +114,19 @@ class Image
         $this->item = $item;
 
         return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getFile(): string
+    {
+        return $this->file;
+    }
+
+
+    public function setFile(File $file = null): void
+    {
+        $this->file = $file;
     }
 }
