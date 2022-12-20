@@ -2,6 +2,8 @@
 
 namespace App\Service;
 
+use App\Api\ApiError;
+use App\Exception\ErrorException;
 use Imagine\Gd\Image;
 use Imagine\Gd\Imagine;
 use Imagine\Image\Box;
@@ -16,6 +18,7 @@ use const App\Controller\ITEMS;
 
 class ImageService
 {
+    /* GET GALLERY AND ALL IMAGES INCLUDED SERVICE */
 
     public function getPhotos(string $path)
     {
@@ -30,13 +33,16 @@ class ImageService
                 $image = file_get_contents($image_file);
                 $image_json = json_decode($image);
             }else{
-                throw new HttpException(404,'Gallery does not exists');
+                $apiError = new ApiError(404, ApiError::TYPE_GALLERY_DOES_NOT_EXISTS);
+                throw new ErrorException($apiError);
             }
         }catch(IOExceptionInterface $exception) {
-            throw new \Exception('WRONG', 500);
+            throw new \Exception('Unknown error', 500);
         }
         return $image_json;
     }
+
+    /* RESIZE IMAGE SERVICE */
 
     public function resize($w, $h, $path, $name)
     {
@@ -45,7 +51,8 @@ class ImageService
 
         if (!$file->exists(GALLERY_DIR_PATH .  $path . '/' . $name))
         {
-            throw new HttpException(404, "Photo not found");
+            $apiError = new ApiError(404, ApiError::TYPE_PHOTO_NOT_FOUND);
+            throw new ErrorException($apiError);
         }
 
         foreach ($finder->files()->in(GALLERY_DIR_PATH . $path) as $item) {
@@ -53,7 +60,8 @@ class ImageService
             $extensions = ['jpg', 'png', 'jpeg'];
             if (in_array($item->getExtension(), $extensions) && $name == $item->getFilename()) {
                 if ($w < 0 || $w > 9000 || $h < 0 || $h > 9000 || ($w == 0 && $h == 0)) {
-                    throw new HttpException(500, "The photo preview can't be generated");
+                    $apiError = new ApiError(500, ApiError::TYPE_PHOTO_PREVIEW_CANT_BE_GENERATED);
+                    throw new ErrorException($apiError);
                 }
                 list($original_w, $original_h) = getimagesize($item);
 

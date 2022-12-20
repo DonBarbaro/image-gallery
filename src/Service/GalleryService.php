@@ -2,6 +2,9 @@
 
 namespace App\Service;
 
+use App\Api\ApiError;
+use App\Exception\ErrorException;
+use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Exception\IOExceptionInterface;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
@@ -18,7 +21,7 @@ class GalleryService
     public function __construct(private SerializerInterface $serializer)
     {}
 
-    public function createGalleryService(string $name):void
+    public function createGallery(string $name):void
     {
         $file = new Filesystem();
         try {
@@ -30,15 +33,17 @@ class GalleryService
             }
             if (!$name)
             {
-                throw new HttpException(400, 'Bad request');
+                $apiError = new ApiError(400, ApiError::TYPE_BAD_REQUEST);
+                throw new ErrorException($apiError);
             }
             if (!$file->exists($new_gallery))
             {
                 $file->mkdir($new_gallery, 0777);
             }else{
-                throw new HttpException(409, 'Gallery with this name already exists');
+                $apiError = new ApiError(409, ApiError::TYPE_GALLERY_WITH_SAME_NAME_ALREADY_EXISTS);
+                throw new ErrorException($apiError);
             }
-        } catch (IOExceptionInterface $exception) {
+        } catch (IOException $exception) {
             echo "Error creating directory at" . $exception->getPath();
         }
     }
@@ -79,7 +84,8 @@ class GalleryService
         try {
 
             if (!$file->exists($img)) {
-                throw new HttpException(404, 'Photo not found');
+                $apiError = new ApiError(400, ApiError::TYPE_PHOTO_NOT_FOUND);
+                throw new ErrorException($apiError);
             }
 
             $items_data = file_get_contents($items_json);

@@ -17,7 +17,10 @@ services:
     ports:
       - "80:80"
   php:
-    build: './docker/php'
+#    build: './docker/php'
+    image: thecodingmachine/php:8.1.13-v4-fpm
+    ports:
+      - '8000:8000'
     volumes:
       - ./:/var/www/html/:delegated
     depends_on:
@@ -35,6 +38,7 @@ services:
       PHP_EXTENSION_PDO_PGSQL: 1
       PHP_EXTENSION_MYSQLI: 0
       PHP_EXTENSION_AMQP: 1
+      PHP_EXTENSION_GD: 1
     #      STARTUP_COMMAND_1: composer install
     #      STARTUP_COMMAND_2: php bin/console do:m:m --no-interaction
     #      STARTUP_COMMAND_3: php bin/console do:f:l --group=default --no-interaction

@@ -2,9 +2,11 @@
 
 namespace App\Controller;
 
+use App\Api\ApiError;
 use App\Entity\Gallery;
 use App\Entity\Image;
 use App\Entity\Item;
+use App\Exception\ErrorException;
 use App\Service\GalleryService;
 use Doctrine\DBAL\Exception;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -28,9 +30,7 @@ class GalleryController extends AbstractController
     public function __construct(private GalleryService $galleryService)
     {}
 
-    /*
-     * GET GALLERY
-     */
+    /*  GET GALLERY  */
 
     #[Route(path: '/gallery', name: 'galleryGet', methods: 'GET')]
     public function getGallery(): JsonResponse
@@ -46,14 +46,11 @@ class GalleryController extends AbstractController
         return $this->json(['galleries' => $data],200);
     }
 
-    /*
-     * POST GALLERY
-     */
+    /*  POST GALLERY  */
 
     #[Route(path: '/gallery', name: 'galleryPost', methods: 'POST')]
     public function createGallery(Request $request): JsonResponse
     {
-
         $data = json_decode($request->getContent(), true);
 
         if (!isset($data) || !array_key_exists('name', $data))
@@ -70,7 +67,8 @@ class GalleryController extends AbstractController
             ], 400);
         }else{
             if (strpos($data['name'], '/')) {
-                throw new HttpException(400, 'Gallery name can not contain "/"');
+                $apiError = new ApiError(400, ApiError::TYPE_GALLERY_NAME_CAN_NOT_CONTAIN);
+                throw new ErrorException($apiError);
             }
             $item = new Item();
             $item->setPath(rawurlencode($data['name']));
@@ -79,14 +77,12 @@ class GalleryController extends AbstractController
             $name = rawurldecode($item->getPath());
 
             //vytvori novy priecinok files s gallery a gallery.json ak neexistuje
-            $this->galleryService->createGalleryService($name);
+            $this->galleryService->createGallery($name);
         }
         return $this->json(['path' => rawurlencode($name), 'name' => $name], 201);
     }
 
-    /*
-     * GALLERY UPLOAD IMAGE
-     */
+    /* GALLERY UPLOAD IMAGE */
 
     #[Route(path: '/gallery/{path}', name: 'uploadImage', methods: 'POST')]
     public function uploadImage(Request $request, SerializerInterface $serializer, string $path): JsonResponse
@@ -95,7 +91,8 @@ class GalleryController extends AbstractController
         //ak neexistuje gallery s nazvom, vyhodí error
         if(!$file->exists(GALLERY_DIR_PATH . $path))
         {
-            throw new HttpException(404, 'Gallery not found');
+            $apiError = new ApiError(404, ApiError::TYPE_GALLERY_NOT_FOUND);
+            throw new ErrorException($apiError);
         }
 
         try
@@ -115,7 +112,8 @@ class GalleryController extends AbstractController
 
         if (!$uploaded_file->get('file'))
         {
-            throw new HttpException(400, 'File not found');
+            $apiError = new ApiError(400, ApiError::TYPE_FILE_NOT_FOUND);
+            throw new ErrorException($apiError);
         }
 
         $info = $uploaded_file->get('file');
@@ -131,9 +129,7 @@ class GalleryController extends AbstractController
         return $this->json(['uploaded' => [$data]], 201, ['header' => 'multipart/form-data']);
     }
 
-    /*
-     * DELETE GALLERY
-     */
+    /* DELETE GALLERY */
 
     #[Route(path: '/gallery/{path}', name: 'deleteGallery', methods: 'DELETE')]
     public function deleteGallery(string $path):JsonResponse
@@ -141,18 +137,21 @@ class GalleryController extends AbstractController
         $file = new Filesystem();
         // $path automaticky decoduje
         $gallery_dir = GALLERY_DIR_PATH . $path;
-        if ($file->exists($gallery_dir))
-        {
-            $file->remove($gallery_dir);
-            return $this->json('Gallery was deleted', 200) ;
-        }else{
-            throw new HttpException(404, 'Gallery does not exist');
+        try {
+            if ($file->exists($gallery_dir))
+            {
+                $file->remove($gallery_dir);
+                return $this->json('Gallery was deleted', 200) ;
+            }else{
+                $apiError = new ApiError(404, ApiError::TYPE_GALLERY_DOES_NOT_EXISTS);
+                throw new ErrorException($apiError);
+            }
+        }catch(IOExceptionInterface $exception) {
+            throw new \Exception('Unknown error', 500);
         }
     }
 
-     /*
-      * DELETE PHOTO
-      */
+     /* DELETE PHOTO */
 
     #[Route(path: '/gallery/{path}/{name}', name: 'deletePhoto', methods: 'DELETE')]
     public function deletePhoto(string $path, string $name, SerializerInterface $serializer): JsonResponse
@@ -164,9 +163,7 @@ class GalleryController extends AbstractController
             return $this->json('Photo was deleted', 200);
     }
 
-        /**
-         * MOVE PHOTO
-         */
+        /* MOVE PHOTO - vlastna featurea */
 
         #[Route(path: '/gallery/{path}/{name}', name: 'movePhoto', methods: 'POST')]
         public function move(Request $request, string $path, string $name, SerializerInterface $serializer): JsonResponse
@@ -180,7 +177,8 @@ class GalleryController extends AbstractController
 
                 if (!$file->exists($gallery_path))
                 {
-                    throw new HttpException(404, 'Direct gallery does not exists');
+                    $apiError = new ApiError(400, ApiError::TYPE_DIRECT_GALLERY_DOES_NOT_EXIST);
+                    throw new ErrorException($apiError);
                 }
 
                 $get_new_items = file_get_contents($gallery_path . ITEMS);

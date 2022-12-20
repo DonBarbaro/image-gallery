@@ -20,9 +20,7 @@ class ImageController extends AbstractController
     public function __construct(private ImageService $imageService)
     {}
 
-    /*
-     * GET GALLERIES AND IMAGES
-     */
+    /* GET GALLERIES AND IMAGES */
 
     #[Route(path: '/gallery/{path}', name: 'getPhotos', methods: 'GET')]
     public function getPhotos(string $path): JsonResponse
@@ -31,9 +29,7 @@ class ImageController extends AbstractController
         return $this->json(['gallery' => ['path' => rawurlencode($path), 'name' => $path], 'images' => $image_json] , 200);
     }
 
-    /*
-     * GENERATE IMAGE
-     */
+    /* GENERATE IMAGE */
 
     #[Route(path: '/images/{w}x{h}/{path}/{name}', methods: 'GET')]
     public function generateImg(int $w, int $h, string $path, string $name): Response
