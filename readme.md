@@ -148,4 +148,4 @@ Do body vložíme len názov galérie kam ma byť obrázok premiestnený.
 
 ### Oprava po zhodnotení
 
-Na mojom zadaní som sa snažil zapracovť podľa pripomienok, snažil som sa refactorovť kód ako som vedel, no som si vedomý že sa to da určite aj lepšie. Zameral som sa na vladáciu súbor, expections, taktiež som vymazal ukladanie JSON súboru ku každej galéríia snažil opraviť nekonzistentné formatovanie kódu. Dúfam že testy už teraz prejdú :)
+Na mojom zadaní som sa snažil zapracovť podľa pripomienok, snažil som sa refactorovť kód ako som vedel, no som si vedomý že sa to da ešte viac zlepšiť. Zameral som sa na vladáciu súbor, exceptions, taktiež som vymazal ukladanie JSON súboru ku každej galéríi a snažil opraviť nekonzistentné formatovanie kódu. Dúfam že testy už teraz prejdú :)
