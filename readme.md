@@ -32,22 +32,25 @@ Api aplikácia na správu galérii a fotografií. Na vytvorenie tejto aplikácie
 
 ### Spustenie
 
-Pre spustenie aplikácie je potrebné mať nainštalované PHP verzia 8.1, composer a symfony. 
+Pre spustenie aplikácie je potrebné mať nainštalovaný Docker. 
 
 1.) Najprv si projekt stiahneme:
 ```
 git clone https://github.com/DonBarbaro/image-gallery.git
 ```
-3.) Pre správne fungovanie balička Imagine si musíme v konfiguračném súbore php.ini odkomentvať __extension=gd__ a taktiež __extension=fileinfo__ pre prácu so súbormi. Ak vyskočí error že gd neexistuje, je potrebné ho nainšatlovať manuálne.\
-2.) Následne sa presunieme do stiahnutého priečinka a nainštalujeme všetko potrebné:
+2.) Presunieme sa v termínali do súboru a spustíme:
+```
+docker compose up -d
+```
+3.) Pomocou príkazu
+```
+docker compose exec php bash
+```
+sa presunieme do vytvoreného containera a nainštalujeme všetky potrebné baličky:
 ```
 composer install
 ```
 
-4.) Spustíme server 
-```
-symfony server:start
-```
 Ak sme spravili všetko správne, inštalácia by mala zbehnúť v poriadku a server by sa mal spustit na adrese **127.0.0.1:8000**
 
 ### Endpointy
@@ -82,8 +85,20 @@ Endpoit, ktorý nám vypíše galáriu a všetky obrázky ktoré sa v nej nachá
 **RESPONSE**\
 ![image](https://user-images.githubusercontent.com/42190301/206414978-5d95ce40-23f2-4fb9-91b1-389fffdbb31c.png)
 
+- **_DELETE_** - 127.0.0.1.8000/gallery/{path}\
+Endpoint, kde {path} je názov gelérie, ktorú chceme vymazať.
+
+**REQUEST**
+```
+127.0.0.1:8000/gallery/Animals
+```
+**RESPONSE**
+```
+"Gallery was deleted"
+```
+
 - **_DELETE_** - 127.0.0.1.8000/gallery/{path}/{name}\
-Endpoint, kde {path} je názov gelérie, ktorú chceme vymazať a {name} je názov obrázka ktorý chceme vymazať, tento endpoint si nevyžaduje {name} ak chceme vymazať iba galériu.
+Endpoint, kde {path} je názov gelérie, ktorú chceme vymazať a {name} je názov obrázka ktorý chceme vymazať.
 
 **REQUEST**
 ```
@@ -104,6 +119,20 @@ Enpoint, kde {w} je šírka obrázka, {h} je výška obrázka, {path} je názov 
 **RESPONSE**\
 ![image](https://user-images.githubusercontent.com/42190301/206419291-a3cca05b-b59d-4291-b492-4c519cb7377d.png)
 
+##### Vlastná funkcionalita
+
+- **_POST_** - 127.0.0.1:8000/gallery/{path}/{name}\
+Endpoint na premiestnovanie fotiek medzi galériami, kde {path} je názov galérie odkiaľ chceme obrázok premiestnit a {name} je názov obrázka ktorý chceme premiestniť.
+Do body vložíme len názov galérie kam ma byť obrázok premiestnený.
+
+**REQUEST**\
+![image](https://user-images.githubusercontent.com/42190301/208786005-1dcbbe1e-1354-4de5-bb5d-2392788f098f.png)
+
+**RESPONSE**\
+```
+"Photo from gallery Test was moved to gallery Api%20test"
+```
+
 ### Súbory
 > 
     public/
@@ -116,6 +145,10 @@ Enpoint, kde {w} je šírka obrázka, {h} je výška obrázka, {path} je názov 
                 ├── lama.jpg      
                 ├── ...
     
+
+### Oprava po zhodnotení
+
+Na mojom zadaní som sa snažil zapracovť podľa pripomienok, snažil som sa refactorovť kód ako som vedel no som si vedomý že sa to da určite aj lepšie. Zameral som sa na vladáciu súbor, expections, taktiež som vymazal ukladanie JSON súboru ku každej galéríi. Taktiež som sa snažil opraviť nekonzistentné formatovanie kódu.
 
 
 
