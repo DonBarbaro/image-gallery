@@ -21,6 +21,11 @@
          <a href="#práca-s-obrázkami">Práca s obrázkami</a> 
         </li>
       </ul>
+     <ul>
+        <li>
+         <a href="#vlastná_funkcionalita">Vlastná funkcionalita</a> 
+        </li>
+      </ul>
     </li>
     <li><a href="#súbory">Súbory</a></li>
   </ol>
@@ -140,7 +145,6 @@ Do body vložíme len názov galérie kam ma byť obrázok premiestnený.
     ├── files/                    
         ├── gallery/          
             ├── Animals/
-                ├── gallery.json   #obsahuje informácie o galérii
                 ├── items.json     #obsahuje informácie o všetkých obrázkoch, ktoré sa nachádzajú v pričinku
                 ├── lama.jpg      
                 ├── ...
