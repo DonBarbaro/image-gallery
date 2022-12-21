@@ -211,6 +211,6 @@ class GalleryController extends AbstractController
             }catch (IOExceptionInterface $exception){
                 throw new HttpException( 500, 'Unknown error' . $exception->getPath());
             }
-            return $this->json('Photo from gallery '. $path .' was moved to gallery '. $gallery_name['gallery'], 200);
+            return $this->json('Photo from gallery '. $path .' was moved to gallery '. rawurldecode($gallery_name['gallery']), 200);
         }
 }
