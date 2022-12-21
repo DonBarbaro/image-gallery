@@ -20,10 +20,8 @@ use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
-
-const FILE_PATH = '/files/gallery/';
-const ITEMS = '/items.json';
-define('GALLERY_DIR_PATH', getcwd() . FILE_PATH);
+use App\Service\GALLERY_DIR_PATH;
+use const App\Service\ITEMS;
 
 class GalleryController extends AbstractController
 {
@@ -177,7 +175,7 @@ class GalleryController extends AbstractController
             $file = new Filesystem();
             $finder = new Finder();
             $gallery_name = $request->toArray();
-            $gallery_path = GALLERY_DIR_PATH . $gallery_name['gallery'];
+            $gallery_path = GALLERY_DIR_PATH . rawurldecode($gallery_name['gallery']);
 
             try {
                 if (!$file->exists($gallery_path))

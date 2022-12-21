@@ -8,13 +8,11 @@ use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Exception\IOExceptionInterface;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\Serializer\SerializerInterface;
-use const App\Controller\ITEMS;
-use const App\Controller\FILE_PATH;
 
-//define('GALLERY_DIR_PATH', getcwd() . FILE_PATH);
+const FILE_PATH = '/files/gallery/';
+const ITEMS = '/items.json';
+define('GALLERY_DIR_PATH', getcwd() . FILE_PATH);
 
 class GalleryService
 {
@@ -61,6 +59,16 @@ class GalleryService
         $filtered_array = array_filter($json_content_array, function ($filtered) use ($keys){ //filtrujem pole aby tam nebol file
             return in_array($filtered, $keys);
         }, ARRAY_FILTER_USE_KEY);
+
+        foreach ($this->serializer->decode(file_get_contents($new_file), 'json') as $value)
+        {
+            if ($value['path'] == $info->getClientOriginalName())
+            {
+                $apiError = new ApiError(400, ApiError::TYPE_PHOTO_WITH_SAME_NAME_ALREADY_EXISTS);
+                throw new ErrorException($apiError);
+            }
+        }
+
         $filtered_content = json_encode(array($filtered_array));
 
         //prida novy img do {path}.json
@@ -70,7 +78,8 @@ class GalleryService
         {
             $file->dumpFile($new_file, $filtered_content);
             $info->move($new_dir_path, $info->getClientOriginalName());
-        }else{ //ked json nie je prazdny zoberie data a prida do pola novy item a prida novy obrazok
+        }else{
+            //ked json nie je prazdny zoberie data a prida do pola novy item a prida novy obrazok
             $data_to_array = $this->serializer->decode($get_data, 'json');
             array_push($data_to_array, $filtered_array);
             $json = $this->serializer->serialize($data_to_array, 'json');
