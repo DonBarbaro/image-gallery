@@ -119,7 +119,7 @@ Enpoint, kde {w} je šírka obrázka, {h} je výška obrázka, {path} je názov 
 **RESPONSE**\
 ![image](https://user-images.githubusercontent.com/42190301/206419291-a3cca05b-b59d-4291-b492-4c519cb7377d.png)
 
-##### Vlastná funkcionalita
+#### Vlastná funkcionalita
 
 - **_POST_** - 127.0.0.1:8000/gallery/{path}/{name}\
 Endpoint na premiestnovanie fotiek medzi galériami, kde {path} je názov galérie odkiaľ chceme obrázok premiestnit a {name} je názov obrázka ktorý chceme premiestniť.
@@ -128,9 +128,9 @@ Do body vložíme len názov galérie kam ma byť obrázok premiestnený.
 **REQUEST**\
 ![image](https://user-images.githubusercontent.com/42190301/208786005-1dcbbe1e-1354-4de5-bb5d-2392788f098f.png)
 
-**RESPONSE**\
+**RESPONSE**
 ```
-"Photo from gallery Test was moved to gallery Api%20test"
+"Photo from gallery Test was moved to gallery Api test"
 ```
 
 ### Súbory
@@ -148,10 +148,4 @@ Do body vložíme len názov galérie kam ma byť obrázok premiestnený.
 
 ### Oprava po zhodnotení
 
-Na mojom zadaní som sa snažil zapracovť podľa pripomienok, snažil som sa refactorovť kód ako som vedel no som si vedomý že sa to da určite aj lepšie. Zameral som sa na vladáciu súbor, expections, taktiež som vymazal ukladanie JSON súboru ku každej galéríi. Taktiež som sa snažil opraviť nekonzistentné formatovanie kódu.
-
-
-
-
-
-
+Na mojom zadaní som sa snažil zapracovť podľa pripomienok, snažil som sa refactorovť kód ako som vedel, no som si vedomý že sa to da určite aj lepšie. Zameral som sa na vladáciu súbor, expections, taktiež som vymazal ukladanie JSON súboru ku každej galéríia snažil opraviť nekonzistentné formatovanie kódu. Dúfam že testy už teraz prejdú :)
