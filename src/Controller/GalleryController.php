@@ -50,7 +50,7 @@ class GalleryController extends AbstractController
 
         if (empty($data))
         {
-            $api_error = new ApiError(400, ApiError::TYPE_GALLERY_IS_EMPTY);
+            $api_error = new ApiError(500, ApiError::TYPE_GALLERY_IS_EMPTY);
             throw new ErrorException($api_error);
         }
 
