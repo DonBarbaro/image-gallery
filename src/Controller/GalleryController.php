@@ -34,6 +34,12 @@ class GalleryController extends AbstractController
     public function getGallery(): JsonResponse
     {
         $finder = new Finder();
+        $file = new Filesystem();
+
+        if(!$file->exists(GALLERY_DIR_PATH))
+        {
+            $file->mkdir(GALLERY_DIR_PATH);
+        }
 
         foreach ($finder->directories()->in(GALLERY_DIR_PATH) as $file)
         {
@@ -41,6 +47,13 @@ class GalleryController extends AbstractController
             $gallery_name = $file->getFilename();
             $data[] = ['path' => $gallery_path, 'name' => $gallery_name];
         }
+
+        if (empty($data))
+        {
+            $api_error = new ApiError(400, ApiError::TYPE_GALLERY_IS_EMPTY);
+            throw new ErrorException($api_error);
+        }
+
         return $this->json(['galleries' => $data],200);
     }
 

@@ -15,6 +15,7 @@ class ApiError
     const TYPE_PHOTO_PREVIEW_CANT_BE_GENERATED = 'photo_preview_cant_be_generated';
     const TYPE_GALLERY_NAME_CAN_NOT_CONTAIN = 'gallery_name_can_not_contain';
     const TYPE_DIRECT_GALLERY_DOES_NOT_EXIST = 'direct_gallery_does_not_exist';
+    const TYPE_GALLERY_IS_EMPTY = 'gallery_is_empty';
 
     private static $titles = array(
         self::TYPE_BAD_REQUEST => 'Bad request',
@@ -28,7 +29,7 @@ class ApiError
         self::TYPE_FILE_NOT_FOUND => 'File not found',
         self::TYPE_PHOTO_DOES_NOT_EXISTS => 'Photo does not exist',
         self::TYPE_DIRECT_GALLERY_DOES_NOT_EXIST => 'Direct gallery does not exists',
-
+        self::TYPE_GALLERY_IS_EMPTY => 'Gallery is empty'
     );
     private int $statusCode;
     private string $message;
